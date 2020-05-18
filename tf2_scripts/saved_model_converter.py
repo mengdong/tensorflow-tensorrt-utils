@@ -33,7 +33,7 @@ from tf_utils.tftrt_helper import save_trt_engine, input_fn
 
 def get_dataset(data_files, batch_size, width, height, labels,
              use_synthetic, preprocess_style,
-             return_numpy=False):
+             return_numpy=True):
     if use_synthetic:
         input_width, input_height = width, height
         features = np.random.normal(
@@ -42,15 +42,16 @@ def get_dataset(data_files, batch_size, width, height, labels,
         features = np.clip(features, 0.0, 255.0)
         labels = np.random.choice(
             a=labels,
-            size=(batch_size),
-            dtype=np.int32)
+            size=(batch_size))
         if not return_numpy:
             with tf.device('/device:GPU:0'):
                 features = tf.convert_to_tensor(tf.get_variable(
                     "features", dtype=tf.float32, initializer=tf.constant(features)))
                 dataset = tf.data.Dataset.from_tensor_slices([features])
                 dataset = dataset.repeat()
-    return dataset
+            return dataset
+        else:
+            return features, labels
 
 def get_func_from_saved_model(saved_model_dir, engine_path=False):
     saved_model_loaded = tf.saved_model.load(
@@ -71,7 +72,7 @@ def get_graph_func(input_saved_model_dir,
                    calib_files=None,
                    batch_size=None,
                    use_synthetic=False,
-                   optimize_offline=True,
+                   optimize_offline=False,
                    engine_path=None):
     """Retreives a frozen SavedModel and applies TF-TRT
     use_trt: bool, if true use TensorRT
@@ -92,8 +93,8 @@ def get_graph_func(input_saved_model_dir,
                                   width=224,
                                   height=224,
                                   labels=10,
-                                  use_synthetic=False,
-                                  preprocess_sytle=preprocess_method)
+                                  use_synthetic=True,
+                                  preprocess_style=preprocess_method)
             for i, (batch_images, _) in enumerate(dataset):
                 if i >= num_iterations:
                     break
@@ -153,8 +154,8 @@ def run_inference(graph_func,
                           width=224,
                           height=224,
                           labels=10,
-                          use_synthetic=False,
-                          preprocess_sytle=preprocess_method)
+                          use_synthetic=True,
+                          preprocess_style=preprocess_method)
 
     for i, batch_images in enumerate(dataset):
         if i >= num_warmup_iterations:
@@ -220,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_synthetic', type=str2bool, default=True,
                         help='If set, one batch of random data is'
                              'generated and used at every iteration.')
-    parser.add_argument('--optimize_offline', type=bool, default=True,
+    parser.add_argument('--optimize_offline', type=bool, default=False,
                         help='If set, TensorRT engines are built'
                              'before runtime.')
 
