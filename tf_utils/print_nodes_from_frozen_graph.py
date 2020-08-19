@@ -16,6 +16,8 @@
 # =============================================================================
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
+from tensorflow.core.framework import graph_pb2
 
 print(tf.__version__)
 from tensorflow.python.client import session
@@ -32,13 +34,13 @@ if __name__ == "__main__":
         help="The location of the protobuf (\'pb\') model to visualize.")
     FLAGS, unparsed = parser.parse_known_args()
 
-    graph = tf.Graph()
+    graph = ops.Graph()
 
     with graph.as_default():
         with session.Session() as sess:
             # First deserialize your frozen graph:
             with tf.io.gfile.GFile(FLAGS.model_dir, 'rb') as f:
-                graph_def = tf.GraphDef()
+                graph_def = graph_pb2.GraphDef()
                 graph_def.ParseFromString(f.read())
                 nodes = [n.name + ' => ' + n.op for n in graph_def.node]
                 for node in nodes:
