@@ -16,16 +16,16 @@
 # =============================================================================
 
 import os
+import argparse
 import tensorflow as tf
 from tensorflow.python.client import session
-
 
 def checkpoint_to_savedmodel(checkpoint_path, savedmodel_path):
     export_dir = os.path.join(savedmodel_path, '0') # IMPORTANT: each model folder must be named '0', '1', ... Otherwise it will
     loaded_graph = tf.Graph()
     with session.Session(graph=loaded_graph) as sess:
         # Restore from checkpoint
-        loader = tf.train.import_meta_graph(checkpoint_path + '.meta')
+        loader = tf.compat.v1.train.import_meta_graph(checkpoint_path + '.meta')
         loader.restore(sess, checkpoint_path)
 
         # Export checkpoint to SavedModel
@@ -34,9 +34,6 @@ def checkpoint_to_savedmodel(checkpoint_path, savedmodel_path):
                                              [tf.saved_model.tag_constants.TRAINING, tf.saved_model.tag_constants.SERVING],
                                              strip_default_attrs=True)
     builder.save()
-
-def main(unused_args):
-    checkpoint_to_savedmodel(FLAGS.checkpoint_dir_prefix, FLAGS.savedmodel_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -54,4 +51,4 @@ if __name__ == "__main__":
         required=True,
         help="The location of the savedmodel")
     FLAGS, unparsed = parser.parse_known_args()
-    app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    checkpoint_to_savedmodel(FLAGS.checkpoint_dir_prefix, FLAGS.savedmodel_dir)
